@@ -255,7 +255,7 @@ The provider profile implements `fetch_account_usage()`, exposing subscription q
 
 Note: Custom plugin tools and slash commands are not available for `kind: model-provider` plugins because Hermes core skips calling `register(ctx)` for model providers (`hermes_cli/plugins_discovery.py:286`, `hermes_cli/plugin_validate.py:253-258`). All quota visibility is provided through the native `fetch_account_usage()` interface.
 
-Quota queries execute `agy -p "/usage" --output-format json` under an isolated HOME environment without consuming any model tokens or inference turns. Results are cached thread-safely for 60 seconds. Refreshes use single-flight execution so concurrent callers share a single subprocess. An unforced query failure serves the stale cache.
+Quota queries execute `agy -p "/usage" --output-format json` under an isolated HOME environment without consuming any model tokens or inference turns. Results are cached thread-safely for 60 seconds. Refreshes use single-flight execution so concurrent callers share a single subprocess. An unforced query failure serves the stale cache. Distinct quota groups reported by `agy` (such as Gemini 4 Argon on paid plans alongside pooled Gemini Models) retain distinct labels in `/usage`.
 
 ---
 
