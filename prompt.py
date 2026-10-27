@@ -14,6 +14,18 @@ _ROLE_LABELS = {
     "tool": "Tool Result",
 }
 
+# agy's stream-json carries no thinking text (issue 31), and Hermes compaction
+# drops reasoning and reduces older tool results to one-line stubs before
+# summarizing. Visible assistant text is therefore the only channel that
+# carries findings across a compaction; a tool loop that emits bare
+# <tool_call> blocks loses what it learned and re-reads the same inputs.
+_TOOL_NOTE_RULE = (
+    "Before each set of tool calls, write 1-3 short plain sentences recording the concrete facts "
+    "the previous tool results established (paths, line numbers, values, conclusions) and what the "
+    "next calls will check. Your reasoning and older tool results are not kept when the context is "
+    "compacted, so only this visible text survives."
+)
+
 _PROMPT_PREAMBLE = (
     # agy embeds its own system prompt before the user's message. Some models
     # (claude-sonnet-4-6, gemini-3.6-flash) obey it and invoke native tools,
@@ -25,7 +37,8 @@ _PROMPT_PREAMBLE = (
     "You are being used strictly as an LLM inference backend for Hermes Agent.",
     "All tool executions and filesystem interactions are performed exclusively by Hermes Agent on the host side.",
     "IMPORTANT INSTRUCTIONS FOR TOOLS:",
-    "- If you need to call a tool, emit ONLY <tool_call>{...}</tool_call> blocks in your text output.",
+    "- To call a tool, emit <tool_call>{...}</tool_call> blocks in your text output.",
+    f"- {_TOOL_NOTE_RULE}",
     "- Each tool call must be a JSON object containing 'id', 'type': 'function', and 'function': {'name': '...', 'arguments': '...'}.",
     "- 'arguments' must be a JSON-encoded string containing the function arguments.",
     "- Do NOT execute local shell commands or file operations directly; only output <tool_call> tags so Hermes can execute them safely.",
@@ -358,7 +371,8 @@ def _format_delta_prompt(
         parts.append(
             "Continue the conversation from the latest tool result. "
             "REMINDER: You are in HEADLESS INFERENCE MODE. Native tools are disabled. "
-            "If you need to call a tool, emit ONLY <tool_call>{...}</tool_call> blocks in your text output. "
+            "To call a tool, emit <tool_call>{...}</tool_call> blocks in your text output. "
+            f"{_TOOL_NOTE_RULE} "
             "Do NOT invoke native tools directly."
         )
         if pending_user_text:
